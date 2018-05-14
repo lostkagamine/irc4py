@@ -18,7 +18,7 @@ class Client:
 
         def handle_msg(s, raw):
             split = s.split(' ')
-            if s.endswith(f'376 {self.username} :End of MOTD command\r\n') and not 'PRIVMSG' in s.split(' '):
+            if s.endswith((f'376 {self.username} :End of MOTD command\r\n', f':{self.username} MODE {self.username} :+i\r\n')) and not 'PRIVMSG' in s.split(' '):
                 self.fire('ready')
             elif s.startswith('PING'):
                 self.send('PONG ' + s.split(' ')[1][:-2])
@@ -35,6 +35,13 @@ class Client:
             data = self.socket.recv(self.buffer)
             if not data: continue
             self.fire('raw', data.decode('utf-8'), data)
+
+    def disconnect(self, msg = 'Quit By Client', close = True):
+        self.send(f'QUIT :{msg}')
+        self.socket.shutdown(2)
+        self.socket.close()
+        if close:
+            exit()
 
     def send(self, s):
         self.fire('send', s)
