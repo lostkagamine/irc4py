@@ -14,16 +14,30 @@ cmds = {}
 prefix = '!!'
 
 def ping(who, chan, msg):
-    c.send(f'PRIVMSG {chan} :Pong!')
+    if chan == c.username:
+        chan = who.split('!')[0]
+    c.privmsg(chan, 'Pong!')
+
+def crash(who, chan, msg):
+    if who == cfg['owner']:
+        raise Exception()
+
+def stop(who, chan, msg):
+    if who == cfg['owner']:
+        c.disconnect()
 
 def cmd(name, func):
     cmds[name] = func
 
 cmd('ping', ping)
+cmd('crash', crash)
+cmd('stop', stop)
 
 def privmsg(who, chan, msg):
     if not msg.startswith(prefix):
         return
+    if who.split('!')[0] == c.username:
+        return # prevent it from responding to itself
     msg = msg[len(prefix):-2] # get rid of \r\n
     #print(msg.encode())
     split = ' '.split(msg)
@@ -47,12 +61,17 @@ def raw(data, rd):
     else:
         print(f'<< {data}')
 
+def error(e):
+    if type(e) == KeyboardInterrupt:
+        c.disconnect('Quit by owner')
+    else:
+        c.privmsg(cfg['home-channel'], f'Exception encountered: {type(e).__name__}: {e}')
+        c.disconnect()
+
 c.on('ready', rdy)
 c.on('raw', raw)
 c.on('send', send)
 c.on('privmsg', privmsg)
+c.on('error', error)
 
-try:
-    c.connect()
-except Exception as e:
-    c.disconnect('Exception encountered: ' + str(e))
+c.connect()

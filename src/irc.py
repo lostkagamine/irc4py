@@ -32,9 +32,12 @@ class Client:
         self.socket.connect((self.ip, self.port))
         self.login()
         while True:
-            data = self.socket.recv(self.buffer)
-            if not data: continue
-            self.fire('raw', data.decode('utf-8'), data)
+            try:
+                data = self.socket.recv(self.buffer)
+                if not data: continue
+                self.fire('raw', data.decode('utf-8'), data)
+            except Exception as e:
+                self.fire('error', e)
 
     def disconnect(self, msg = 'Quit By Client', close = True):
         self.send(f'QUIT :{msg}')
@@ -50,6 +53,9 @@ class Client:
     def login(self):
         self.send(f'USER {self.username} {self.hostname} {self.servername} :{self.realname}')
         self.send(f'NICK {self.username}')
+
+    def privmsg(self, to, msg):
+        self.send(f'PRIVMSG {to} :{msg}')
 
     def on(self, name, event):
         try:
