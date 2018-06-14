@@ -6,20 +6,23 @@ import re
 # an irc lib for python
 
 class Client:
-    def __init__(self, ip, port, username, hostname="irc4py-bot", servername="irc4py", realname="Made with irc4py by ry00001."):
+    def __init__(self, ip, port, username, password=None, hostname="irc4py-bot", servername="irc4py", realname="Made with irc4py by ry00001."):
         self.ip = ip
         self.port = port
         self.username = username
         self.hostname = hostname
         self.servername = servername
         self.realname = realname
+        self.password = password
+        self.readied = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.buffer = 1024
 
         def handle_msg(s, raw):
             split = s.split(' ')
-            if s.endswith((f'376 {self.username} :End of MOTD command\r\n', f':{self.username} MODE {self.username} :+i\r\n')) and not 'PRIVMSG' in s.split(' '):
+            if not self.readied and not 'PRIVMSG' in s.split(' '):
                 self.fire('ready')
+                self.readied = True
             elif s.startswith('PING'):
                 self.send('PONG ' + s.split(' ')[1][:-2])
             elif split[1] == 'PRIVMSG':
@@ -51,6 +54,8 @@ class Client:
         self.socket.send(f'{s}\r\n'.encode())
 
     def login(self):
+        if self.password:
+            self.send(f'PASS {self.password}')
         self.send(f'USER {self.username} {self.hostname} {self.servername} :{self.realname}')
         self.send(f'NICK {self.username}')
 
